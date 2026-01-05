@@ -579,4 +579,66 @@
                                                 </div>
                                             ))}
                                             <button 
-                                                onClick={addTrainee
+                                                onClick={addTrainee}
+                                                className="w-full py-2 bg-slate-100 text-slate-600 rounded hover:bg-slate-200 transition-colors text-sm font-medium"
+                                            >
+                                                + 新增受訓人員
+                                            </button>
+                                        </div>
+                                    </Card>
+                                </div>
+
+                                <div>
+                                    <SectionHeader title="4. 下週計畫" />
+                                    <Card title="重點工作摘要" icon={IconCalendar}>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">生產重點</label>
+                                                <textarea 
+                                                    className="w-full border border-slate-300 rounded p-2 text-sm h-20 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                                    value={data.nextWeek?.production || ''}
+                                                    onChange={(e) => handleNextWeekChange('production', e.target.value)}
+                                                ></textarea>
+                                            </div>
+                                            <div>
+                                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">維修/保養</label>
+                                                <textarea 
+                                                    className="w-full border border-slate-300 rounded p-2 text-sm h-16 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                                                    value={data.nextWeek?.maintenance || ''}
+                                                    onChange={(e) => handleNextWeekChange('maintenance', e.target.value)}
+                                                ></textarea>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">人力調度</label>
+                                                    <input 
+                                                        className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={data.nextWeek?.hr || ''}
+                                                        onChange={(e) => handleNextWeekChange('hr', e.target.value)}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">待決策</label>
+                                                    <input 
+                                                        className="w-full border border-slate-300 rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                                        value={data.nextWeek?.decision || ''}
+                                                        onChange={(e) => handleNextWeekChange('decision', e.target.value)}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </Card>
+                                </div>
+                            </div>
+
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
