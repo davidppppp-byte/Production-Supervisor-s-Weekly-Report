@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-// 請先安裝依賴：npm install lucide-react firebase
+import React, { useState } from 'react';
+// 請先安裝依賴：npm install lucide-react
 import { 
   Printer, 
   Plus, 
@@ -9,46 +9,8 @@ import {
   Users, 
   Calendar, 
   FileText,
-  Download,
-  Cloud,
-  Loader2,
-  Wifi,
-  WifiOff
+  Download
 } from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  onAuthStateChanged
-} from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  onSnapshot, 
-  setDoc
-} from 'firebase/firestore';
-
-// --- 1. Firebase 設定 (請替換為您自己的 Firebase Config) ---
-// 您可以在 Firebase Console -> Project Settings -> General -> Your apps 下方找到
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
-
-// 初始化 Firebase
-// 加入 try-catch 防止配置錯誤導致白屏
-let app, auth, db;
-try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-} catch (error) {
-  console.error("Firebase 初始化失敗，請檢查 Config:", error);
-}
 
 // 預設資料結構
 const DEFAULT_DATA = {
@@ -95,94 +57,12 @@ const SectionHeader = ({ title }) => (
 export default function App() {
   const [data, setData] = useState(DEFAULT_DATA);
   const [viewMode, setViewMode] = useState('edit');
-  const [user, setUser] = useState(null);
-  const [status, setStatus] = useState('loading'); 
-  const [lastSaved, setLastSaved] = useState(null);
 
-  // 初始化 Auth (使用匿名登入，需在 Firebase Console 開啟 Anonymous Auth)
-  useEffect(() => {
-    if (!auth) {
-      setStatus('error');
-      return;
-    }
-    const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (error) {
-        console.error("Auth Error:", error);
-        setStatus('error');
-      }
-    };
-    initAuth();
-    const unsubscribe = onAuthStateChanged(auth, setUser);
-    return () => unsubscribe();
-  }, []);
-
-  // 監聽資料
-  useEffect(() => {
-    if (!user || !db) return;
-
-    // 在您自己的資料庫中，我們可以存放在 'weekly_reports' 集合下的 'current_week' 文件
-    const docRef = doc(db, 'weekly_reports', 'current_week');
-
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const cloudData = docSnap.data();
-        
-        // 深度合併資料 (Deep Safe Merge)
-        setData(prev => ({
-          ...DEFAULT_DATA,
-          ...(cloudData || {}),
-          anomalies: {
-            ...DEFAULT_DATA.anomalies,
-            ...(cloudData?.anomalies || {})
-          },
-          meta: {
-            ...DEFAULT_DATA.meta,
-            ...(cloudData?.meta || {})
-          },
-          nextWeek: {
-            ...DEFAULT_DATA.nextWeek,
-            ...(cloudData?.nextWeek || {})
-          },
-          tasks: Array.isArray(cloudData?.tasks) ? cloudData.tasks : DEFAULT_DATA.tasks,
-          training: Array.isArray(cloudData?.training) ? cloudData.training : DEFAULT_DATA.training
-        }));
-        
-        setStatus('saved');
-      } else {
-        setDoc(docRef, DEFAULT_DATA);
-        setData(DEFAULT_DATA);
-      }
-    }, (error) => {
-      console.error("Sync Error:", error);
-      setStatus('error');
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // 儲存資料
-  const saveDataToCloud = useCallback(async (newData) => {
-    if (!user || !db) return;
-    setStatus('saving');
-    try {
-      const docRef = doc(db, 'weekly_reports', 'current_week');
-      await setDoc(docRef, newData);
-      setStatus('saved');
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error("Save Error:", error);
-      setStatus('error');
-    }
-  }, [user]);
-
+  // 通用更新處理器 (純本機狀態更新)
   const handleUpdate = (updater) => {
     setData(prev => {
       const safePrev = prev || DEFAULT_DATA;
-      const newData = updater(safePrev);
-      saveDataToCloud(newData);
-      return newData;
+      return updater(safePrev);
     });
   };
 
@@ -273,18 +153,6 @@ export default function App() {
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const StatusIndicator = () => {
-    if (status === 'loading') return <div className="flex items-center gap-2 text-slate-300"><Loader2 className="w-4 h-4 animate-spin" /> 連線中...</div>;
-    if (status === 'saving') return <div className="flex items-center gap-2 text-yellow-400"><Loader2 className="w-4 h-4 animate-spin" /> 儲存中...</div>;
-    if (status === 'error') return <div className="flex items-center gap-2 text-red-400"><WifiOff className="w-4 h-4" /> 連線異常</div>;
-    return (
-      <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-500">
-        <Wifi className="w-4 h-4" /> 
-        <span className="text-xs">雲端已同步 {lastSaved && lastSaved.toLocaleTimeString()}</span>
-      </div>
-    );
   };
 
   const PreviewView = () => (
@@ -396,11 +264,11 @@ export default function App() {
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Cloud className="w-6 h-6 text-blue-400" />
-              <h1 className="text-xl font-bold tracking-wide">生產部週誌 (雲端版)</h1>
+              <FileText className="w-6 h-6 text-blue-400" />
+              <h1 className="text-xl font-bold tracking-wide">生產部週誌 (填寫工具)</h1>
             </div>
-            <div className="ml-4 pl-4 border-l border-slate-600 text-sm">
-              <StatusIndicator />
+            <div className="ml-4 pl-4 border-l border-slate-600 text-xs text-slate-400">
+              本機模式 (重新整理後資料將重置)
             </div>
           </div>
           <div className="flex gap-3">
